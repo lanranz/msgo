@@ -88,5 +88,15 @@ func main() {
 			log.Println(err)
 		}
 	})
+
+	g.Get("/json", func(ctx *msgo.Context) {
+		user := &User{
+			Name: "码神之路",
+		}
+		err := ctx.JSON(http.StatusOK, user)
+		if err != nil {
+			log.Println(err)
+		}
+	})
 	engine.Run()
 }
