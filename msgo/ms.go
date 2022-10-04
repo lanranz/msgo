@@ -2,7 +2,9 @@ package msgo
 
 import (
 	"fmt"
+	"html/template"
 	"log"
+	"msgo/render"
 	"net/http"
 )
 
@@ -121,6 +123,22 @@ func (r *routerGroup) Head(name string, handleFunc HandleFunc, middlewareFunc ..
 
 type Engine struct {
 	router
+	//提前加载模板到内存中，而不需要等到访问时才加载模板
+	funcMap    template.FuncMap
+	HTMLRender render.HTMLRender
+}
+
+func (e *Engine) setFuncMap(funcMap template.FuncMap) {
+	e.funcMap = funcMap
+}
+
+func (e *Engine) LoadTemplate(pattern string) {
+	t := template.Must(template.New("").Funcs(e.funcMap).ParseGlob(pattern))
+	e.setHtmlTemplate(t)
+}
+
+func (e *Engine) setHtmlTemplate(t *template.Template) {
+	e.HTMLRender = render.HTMLRender{Template: t}
 }
 
 func New() *Engine {
@@ -144,8 +162,9 @@ func (e *Engine) httpRequestHandle(w http.ResponseWriter, r *http.Request) {
 		if node != nil && node.isEnd {
 			//路由匹配上了
 			ctx := &Context{
-				W: w,
-				R: r,
+				W:      w,
+				R:      r,
+				engine: e,
 			}
 			handle, ok := group.handleFuncMap[node.routerName][ANY]
 			if ok {

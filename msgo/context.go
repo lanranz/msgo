@@ -7,8 +7,9 @@ import (
 
 //上下文，用于传递信息
 type Context struct {
-	W http.ResponseWriter
-	R *http.Request
+	W      http.ResponseWriter
+	R      *http.Request
+	engine *Engine
 }
 
 //返回的页面
@@ -45,5 +46,11 @@ func (c *Context) HTMLTemplateGlob(name string, data any, pattern string) error 
 		return err
 	}
 	err = t.Execute(c.W, data)
+	return err
+}
+
+func (c *Context) Template(name string, data any) error {
+	c.W.Header().Set("Content-Type", "text/html;charset=utf-8")
+	err := c.engine.HTMLRender.Template.ExecuteTemplate(c.W, name, data)
 	return err
 }

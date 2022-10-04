@@ -77,5 +77,16 @@ func main() {
 			log.Println(err)
 		}
 	})
+	//提前加载模板
+	engine.LoadTemplate("tpl/*.html")
+	g.Get("/template", func(ctx *msgo.Context) {
+		user := &User{
+			Name: "码神之路",
+		}
+		err := ctx.Template("login.html", user)
+		if err != nil {
+			log.Println(err)
+		}
+	})
 	engine.Run()
 }
