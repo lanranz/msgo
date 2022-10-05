@@ -8,7 +8,8 @@ import (
 )
 
 type User struct {
-	Name string
+	Name string `xml:"name"`
+	Age  int    `xml:"age"`
 }
 
 func Log(next msgo.HandleFunc) msgo.HandleFunc {
@@ -94,6 +95,17 @@ func main() {
 			Name: "码神之路",
 		}
 		err := ctx.JSON(http.StatusOK, user)
+		if err != nil {
+			log.Println(err)
+		}
+	})
+
+	g.Get("/xml", func(ctx *msgo.Context) {
+		user := &User{
+			Name: "码神之路",
+			Age:  10,
+		}
+		err := ctx.XML(http.StatusOK, user)
 		if err != nil {
 			log.Println(err)
 		}
