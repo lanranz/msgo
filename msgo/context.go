@@ -3,6 +3,7 @@ package msgo
 import (
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"html/template"
 	"net/http"
 	"net/url"
@@ -106,4 +107,13 @@ func (c *Context) FileFromFS(filepath string, fs http.FileSystem) {
 	c.R.URL.Path = filepath
 
 	http.FileServer(fs).ServeHTTP(c.W, c.R)
+}
+
+//重定向
+func (c *Context) Redirect(status int, location string) {
+	//对状态码进行判断
+	if (status < http.StatusMultipleChoices || status > http.StatusPermanentRedirect) && status != http.StatusCreated {
+		panic(fmt.Sprintf("Cannot redirect with status code %d", status))
+	}
+	http.Redirect(c.W, c.R, location, status)
 }

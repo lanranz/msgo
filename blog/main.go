@@ -124,5 +124,10 @@ func main() {
 	g.Get("/fs", func(ctx *msgo.Context) {
 		ctx.FileFromFS("test.xlsx", http.Dir("tpl"))
 	})
+
+	//重定向，跳转到/user/hello页面，状态码是302能直接跳转，状态码是200时则需要进行一次页面点击才能跳转
+	g.Get("/redirect", func(ctx *msgo.Context) {
+		ctx.Redirect(http.StatusFound, "/user/hello")
+	})
 	engine.Run()
 }
