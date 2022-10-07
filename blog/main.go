@@ -110,5 +110,19 @@ func main() {
 			log.Println(err)
 		}
 	})
+	g.Get("/excel", func(ctx *msgo.Context) {
+		ctx.File("tpl/test.xlsx")
+	})
+
+	//能够自定义文件名称
+	g.Get("/excelName", func(ctx *msgo.Context) {
+		ctx.FileAttachment("tpl/test.xlsx", "哈哈.xlsx")
+		//ctx.FileFromFS("test.xlsx", http.Dir("tpl"))
+	})
+
+	//指定文件系统路径
+	g.Get("/fs", func(ctx *msgo.Context) {
+		ctx.FileFromFS("test.xlsx", http.Dir("tpl"))
+	})
 	engine.Run()
 }

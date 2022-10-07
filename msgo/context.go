@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"html/template"
 	"net/http"
+	"net/url"
 )
 
 //上下文，用于传递信息
@@ -78,4 +79,31 @@ func (c *Context) XML(status int, data any) error {
 	//_, err = c.W.Write(xmlData)
 	err := xml.NewEncoder(c.W).Encode(data)
 	return err
+}
+
+//下载的文件名是请求的名字，不能自定义
+func (c *Context) File(fileName string) {
+	http.ServeFile(c.W, c.R, fileName)
+}
+
+//能够自定义返回文件的名称
+//当参数都是string类型时可以少写一个string
+func (c *Context) FileAttachment(filepath, filename string) {
+	if isASCII(filename) {
+		c.W.Header().Set("Content-Disposition", `attachment; filename="`+filename+`"`)
+	} else {
+		c.W.Header().Set("Content-Disposition", `attachment; filename*=UTF-8''`+url.QueryEscape(filename))
+	}
+	http.ServeFile(c.W, c.R, filepath)
+}
+
+//从文件系统获取，需要指定文件系统路径，filepath是文件系统的相对路径
+func (c *Context) FileFromFS(filepath string, fs http.FileSystem) {
+	defer func(old string) {
+		c.R.URL.Path = old
+	}(c.R.URL.Path)
+
+	c.R.URL.Path = filepath
+
+	http.FileServer(fs).ServeHTTP(c.W, c.R)
 }
