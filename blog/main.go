@@ -129,5 +129,9 @@ func main() {
 	g.Get("/redirect", func(ctx *msgo.Context) {
 		ctx.Redirect(http.StatusFound, "/user/hello")
 	})
+
+	g.Get("/string", func(ctx *msgo.Context) {
+		ctx.String(http.StatusFound, "%s 是由 %s 制作 \n", "goweb框架", "码神之路")
+	})
 	engine.Run()
 }

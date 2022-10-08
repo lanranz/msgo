@@ -117,3 +117,17 @@ func (c *Context) Redirect(status int, location string) {
 	}
 	http.Redirect(c.W, c.R, location, status)
 }
+
+//支持通过占位符的方式输出string
+func (c *Context) String(status int, format string, values ...any) (err error) {
+	plainContentType := "text/plain; charset=utf-8"
+	c.W.Header().Set("Content-Type", plainContentType)
+	c.W.WriteHeader(status)
+	//大于0说明有占位符，不是纯字符串
+	if len(values) > 0 {
+		_, err = fmt.Fprintf(c.W, format, values...)
+		return err
+	}
+	_, err = c.W.Write(StringToBytes(format))
+	return
+}
