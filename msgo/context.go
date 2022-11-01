@@ -1,10 +1,8 @@
 package msgo
 
 import (
-	"encoding/json"
-	"encoding/xml"
-	"fmt"
 	"html/template"
+	"msgo/render"
 	"net/http"
 	"net/url"
 )
@@ -18,11 +16,8 @@ type Context struct {
 
 //返回的页面
 func (c *Context) HTML(status int, html string) error {
-	c.W.Header().Set("Content-Type", "text/html;charset=utf-8")
-	//设置状态是200.默认不设置的话，如果调用了write这个方法，实际上默认返回状态200,表示响应请求成功。
-	c.W.WriteHeader(status)
-	_, err := c.W.Write([]byte(html))
-	return err
+
+	return c.Render(status, &render.HTML{Data: html, IsTemplate: false})
 }
 
 //支持模板
@@ -54,32 +49,22 @@ func (c *Context) HTMLTemplateGlob(name string, data any, pattern string) error 
 }
 
 func (c *Context) Template(name string, data any) error {
-	c.W.Header().Set("Content-Type", "text/html;charset=utf-8")
-	err := c.engine.HTMLRender.Template.ExecuteTemplate(c.W, name, data)
-	return err
+	return c.Render(http.StatusOK, &render.HTML{
+		Data:       data,
+		IsTemplate: true,
+		Template:   c.engine.HTMLRender.Template,
+		Name:       name,
+	})
 }
 
 func (c *Context) JSON(status int, data any) error {
-	c.W.Header().Set("Content-Type", "text/json;charset=utf-8")
-	c.W.WriteHeader(status)
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	_, err = c.W.Write(jsonData)
-	return err
+	return c.Render(status, &render.JSON{Data: data})
 }
 
 func (c *Context) XML(status int, data any) error {
-	c.W.Header().Set("Content-Type", "text/xml;charset=utf-8")
-	c.W.WriteHeader(status)
-	//xmlData, err := xml.Marshal(data)
-	//if err != nil {
-	//	return err
-	//}
-	//_, err = c.W.Write(xmlData)
-	err := xml.NewEncoder(c.W).Encode(data)
-	return err
+	return c.Render(status, &render.XML{
+		Data: data,
+	})
 }
 
 //下载的文件名是请求的名字，不能自定义
@@ -110,24 +95,21 @@ func (c *Context) FileFromFS(filepath string, fs http.FileSystem) {
 }
 
 //重定向
-func (c *Context) Redirect(status int, location string) {
-	//对状态码进行判断
-	if (status < http.StatusMultipleChoices || status > http.StatusPermanentRedirect) && status != http.StatusCreated {
-		panic(fmt.Sprintf("Cannot redirect with status code %d", status))
-	}
-	http.Redirect(c.W, c.R, location, status)
+func (c *Context) Redirect(status int, url string) error {
+	return c.Render(status, &render.Redirect{Code: status,
+		Request:  c.R,
+		Location: url,
+	})
 }
 
 //支持通过占位符的方式输出string
-func (c *Context) String(status int, format string, values ...any) (err error) {
-	plainContentType := "text/plain; charset=utf-8"
-	c.W.Header().Set("Content-Type", plainContentType)
-	c.W.WriteHeader(status)
-	//大于0说明有占位符，不是纯字符串
-	if len(values) > 0 {
-		_, err = fmt.Fprintf(c.W, format, values...)
-		return err
-	}
-	_, err = c.W.Write(StringToBytes(format))
-	return
+func (c *Context) String(status int, format string, values ...any) error {
+	err := c.Render(status, &render.String{Format: format, Data: values})
+	return err
+}
+
+func (c *Context) Render(statusCode int, r render.Render) error {
+	err := r.Render(c.W)
+	c.W.WriteHeader(statusCode)
+	return err
 }
