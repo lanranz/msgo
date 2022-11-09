@@ -133,5 +133,15 @@ func main() {
 	g.Get("/string", func(ctx *msgo.Context) {
 		ctx.String(http.StatusFound, "%s 是由 %s 制作 \n", "goweb框架", "码神之路")
 	})
+	//g.Get("/add", func(ctx *msgo.Context) {
+	//	id := ctx.GetQueryCache("id")
+	//	fmt.Printf("id:%s \n", id)
+	//})
+
+	g.Get("/add", func(ctx *msgo.Context) {
+		ids, ok := ctx.GetQueryCacheArray("id")
+		fmt.Printf("id:%v ,ok:%v \n", ids, ok)
+	})
+
 	engine.Run()
 }

@@ -6,17 +6,18 @@ import (
 	"log"
 	"msgo/render"
 	"net/http"
+	"sync"
 )
 
 const ANY = "ANY"
 
-//用type定义一个函数，函数的类型是func
+// 用type定义一个函数，函数的类型是func
 type HandleFunc func(ctx *Context)
 
-//传入handlefunc并返回handlefunc，达到到在中间处理请求的目的
+// 传入handlefunc并返回handlefunc，达到到在中间处理请求的目的
 type MiddlewareFunc func(handleFunc HandleFunc) HandleFunc
 
-//路由组
+// 路由组
 type routerGroup struct {
 	name string
 	//map名 map [键类型]值类型，每个value都代表一个处理方法,这是一个多维映射，也就是map的嵌套，map的value可以为任意类型，
@@ -35,7 +36,7 @@ type router struct {
 	routerGroups []*routerGroup
 }
 
-//创建路由组，输入值路由组名，返回路由组的map
+// 创建路由组，输入值路由组名，返回路由组的map
 func (r *router) Group(name string) *routerGroup {
 	routerGroup := &routerGroup{
 		name:               name,
@@ -50,7 +51,7 @@ func (r *router) Group(name string) *routerGroup {
 	return routerGroup
 }
 
-//...代表可能有多个
+// ...代表可能有多个
 func (r *routerGroup) Use(middlewareFunc ...MiddlewareFunc) {
 	r.Middlewares = append(r.Middlewares, middlewareFunc...)
 }
@@ -88,7 +89,7 @@ func (r *routerGroup) handle(name string, method string, handleFunc HandleFunc, 
 	r.treeNode.Put(name)
 }
 
-//创建路由，参数是路径和处理方法
+// 创建路由，参数是路径和处理方法
 func (r *routerGroup) Any(name string, handleFunc HandleFunc, middlewareFunc ...MiddlewareFunc) {
 	r.handle(name, ANY, handleFunc, middlewareFunc...)
 }
@@ -122,10 +123,13 @@ func (r *routerGroup) Head(name string, handleFunc HandleFunc, middlewareFunc ..
 }
 
 type Engine struct {
+	//继承router结构体，Engine是router的子类
 	router
 	//提前加载模板到内存中，而不需要等到访问时才加载模板
 	funcMap    template.FuncMap
 	HTMLRender render.HTMLRender
+	//sync.pool用于处理那些未来要用，但是暂时没有使用的值，这样可以不用重复分配内存，提高效率，这边用来解决context频繁每次调用都频繁创建的问题
+	pool sync.Pool
 }
 
 func (e *Engine) setFuncMap(funcMap template.FuncMap) {
@@ -142,30 +146,39 @@ func (e *Engine) setHtmlTemplate(t *template.Template) {
 }
 
 func New() *Engine {
-	return &Engine{
-		//初始化路由
+	//初始化engine
+	engine := &Engine{
+		//初始化engine的父类路由，结构体加花括号的初始化是结构体初始化的常用写法
 		router: router{},
 	}
+	//初始化一个pool,其中存放context
+	engine.pool.New = func() any {
+		return engine.allcateContext()
+	}
+	return engine
 }
 
-//实现ServerHTTP方法就相当于实现了源码中Handler这个接口，可以指定请求方式
+// 初始化sync.Pool中的context的内容
+func (e *Engine) allcateContext() any {
+	return &Context{engine: e}
+}
+
+// 实现ServerHTTP方法就相当于实现了源码中Handler这个接口，可以指定请求方式
 func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	e.httpRequestHandle(w, r)
+	ctx := e.pool.Get().(*Context)
+	ctx.W = w
+	ctx.R = r
+	e.httpRequestHandle(ctx, w, r)
+	e.pool.Put(ctx)
 }
 
-func (e *Engine) httpRequestHandle(w http.ResponseWriter, r *http.Request) {
+func (e *Engine) httpRequestHandle(ctx *Context, w http.ResponseWriter, r *http.Request) {
 	method := r.Method
 
 	for _, group := range e.routerGroups {
-		routerName := SubStringLast(r.RequestURI, "/"+group.name)
+		routerName := SubStringLast(r.URL.Path, "/"+group.name)
 		node := group.treeNode.Get(routerName)
 		if node != nil && node.isEnd {
-			//路由匹配上了
-			ctx := &Context{
-				W:      w,
-				R:      r,
-				engine: e,
-			}
 			handle, ok := group.handleFuncMap[node.routerName][ANY]
 			if ok {
 				group.methodHandle(node.routerName, ANY, handle, ctx)
