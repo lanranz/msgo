@@ -1,11 +1,20 @@
 package msgo
 
 import (
+	"errors"
 	"html/template"
+	"io"
+	"log"
+	"mime/multipart"
+	"msgo/binding"
 	"msgo/render"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 )
+
+const defaultMultipartMemory = 32 << 20 //默认最大内存32兆，<<是二进制左移20位
 
 // 上下文，用于传递信息
 type Context struct {
@@ -16,6 +25,12 @@ type Context struct {
 	engine *Engine
 	//存储url中的参数
 	queryCache url.Values
+	//post表单参数
+	formCache url.Values
+	//json传参的传入json有多余字段校验功能的开关
+	DisallowUnknownFields bool
+	//json传参缺少字段检验开关
+	IsValidate bool
 }
 
 // 获取url参数
@@ -33,14 +48,133 @@ func (c *Context) GetQueryCacheArray(key string) ([]string, bool) {
 
 // 初始化url参数
 func (c *Context) initQueryCache() {
-	if c.queryCache == nil {
-		if c.W != nil {
-			c.queryCache = c.R.URL.Query()
-		} else {
-			c.queryCache = url.Values{}
+	if c.W != nil {
+		c.queryCache = c.R.URL.Query()
+	} else {
+		c.queryCache = url.Values{}
+	}
+}
+
+func (c *Context) QueryArray(key string) (values []string) {
+	c.initQueryCache()
+	values, _ = c.queryCache[key]
+	return
+}
+
+// 设置一个默认的参数值，当没有获取到参数时使用默认的值
+func (c *Context) DefaultQuery(key, defaultValue string) string {
+	array, ok := c.GetQueryCacheArray(key)
+	if !ok {
+		return defaultValue
+	}
+	return array[0]
+}
+
+func (c *Context) QueryMap(key string) (dicts map[string]string) {
+	dicts, _ = c.GetQueryMap(key)
+	return
+}
+
+// url参数是map格式，类似于`http://localhost:8080/queryMap?user[id]=1&user[name]=张三`
+func (c *Context) GetQueryMap(key string) (map[string]string, bool) {
+	c.initQueryCache()
+	return c.get(c.queryCache, key)
+}
+
+func (c *Context) get(m map[string][]string, key string) (map[string]string, bool) {
+	dicts := make(map[string]string)
+	exist := false
+	for k, value := range m {
+		//判断写法是否合规
+		if i := strings.IndexByte(k, '['); i >= 1 && k[0:i] == key {
+			if j := strings.IndexByte(k[i+1:], ']'); j >= 1 {
+				exist = true
+				dicts[k[i+1:][:j]] = value[0]
+				//dicts[k[i+1:j]] = value[0]
+			}
 		}
 	}
+	return dicts, exist
+}
 
+func (c *Context) initPostFormcache() {
+	if c.W != nil {
+		if err := c.R.ParseMultipartForm(defaultMultipartMemory); err != nil {
+			if !errors.Is(err, http.ErrNotMultipart) {
+				log.Println(err)
+			}
+		}
+		c.formCache = c.R.PostForm
+	} else {
+		c.formCache = url.Values{}
+	}
+}
+
+func (c *Context) GetPostForm(key string) (string, bool) {
+	if values, ok := c.GetPostFormArray(key); ok {
+		return values[0], ok
+	}
+	return "", false
+}
+
+func (c *Context) PostFormArray(key string) (values []string) {
+	values, _ = c.GetPostFormArray(key)
+	return
+}
+
+func (c *Context) PostFormMap(key string) (dicts map[string]string) {
+	dicts, _ = c.GetPostFormMap(key)
+	return
+}
+
+func (c *Context) GetPostFormArray(key string) ([]string, bool) {
+	c.initPostFormcache()
+	values, ok := c.formCache[key]
+	return values, ok
+}
+
+func (c *Context) GetPostFormMap(key string) (map[string]string, bool) {
+	c.initPostFormcache()
+	return c.get(c.formCache, key)
+}
+
+func (c Context) FormFile(name string) *multipart.FileHeader {
+	file, header, err := c.R.FormFile(name)
+	if err != nil {
+		log.Println(err)
+	}
+	defer file.Close()
+	return header
+}
+
+func (c Context) FormFiles(name string) []*multipart.FileHeader {
+	multipartForm, err := c.MultipartForm()
+	if err != nil {
+		return make([]*multipart.FileHeader, 0)
+	}
+	return multipartForm.File[name]
+}
+
+func (c *Context) SaveUploadedFile(file *multipart.FileHeader, dst string) error {
+	src, err := file.Open()
+	if err != nil {
+		return err
+	}
+	defer src.Close()
+
+	out, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, src)
+	return err
+}
+
+func (c *Context) MultipartForm() (*multipart.Form, error) {
+	err := c.R.ParseMultipartForm(defaultMultipartMemory)
+	return c.R.MultipartForm, err
 }
 
 // 返回的页面
@@ -139,6 +273,32 @@ func (c *Context) String(status int, format string, values ...any) error {
 
 func (c *Context) Render(statusCode int, r render.Render) error {
 	err := r.Render(c.W)
-	c.W.WriteHeader(statusCode)
+	if statusCode != http.StatusOK {
+		c.W.WriteHeader(statusCode)
+	}
 	return err
+}
+
+func (c *Context) BindJson(obj any) error {
+	jsonBinding := binding.JSON
+	jsonBinding.DisallowUnknownFields = c.DisallowUnknownFields
+	jsonBinding.IsValidate = c.IsValidate
+	return c.MustBindWith(obj, jsonBinding)
+}
+
+func (c *Context) BindXml(obj any) error {
+	return c.MustBindWith(obj, binding.XML)
+}
+
+func (c *Context) MustBindWith(obj any, b binding.Binding) error {
+	//如果发生错误，返回400状态码 参数错误
+	if err := c.ShouldBindWith(obj, b); err != nil {
+		c.W.WriteHeader(http.StatusBadRequest)
+		return err
+	}
+	return nil
+}
+
+func (c *Context) ShouldBindWith(obj any, b binding.Binding) error {
+	return b.Bind(c.R, obj)
 }

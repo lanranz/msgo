@@ -8,8 +8,11 @@ import (
 )
 
 type User struct {
-	Name string `xml:"name"`
-	Age  int    `xml:"age"`
+	//反引号中的字符表示其原生的意思，在单引号中的内容可以是多行内容，不支持转义。
+	Name    string   `xml:"name" json:"name"`
+	Age     int      `xml:"age" json:"age"`
+	Address []string `json:"addresses"`
+	Mail    string   `json:"email" msgo:"required"'`
 }
 
 func Log(next msgo.HandleFunc) msgo.HandleFunc {
@@ -139,9 +142,35 @@ func main() {
 	//})
 
 	g.Get("/add", func(ctx *msgo.Context) {
-		ids, ok := ctx.GetQueryCacheArray("id")
-		fmt.Printf("id:%v ,ok:%v \n", ids, ok)
+		name := ctx.DefaultQuery("name", "张三")
+		fmt.Printf("id:%v ,ok:%v \n", name, true)
 	})
 
+	g.Get("/querymap", func(ctx *msgo.Context) {
+		m, _ := ctx.GetQueryMap("user")
+		ctx.JSON(http.StatusOK, m)
+	})
+
+	g.Post("/formPost", func(ctx *msgo.Context) {
+		m, _ := ctx.GetPostForm("name")
+		file := ctx.FormFile("file")
+		err := ctx.SaveUploadedFile(file, "./upload"+file.Filename)
+		if err != nil {
+			log.Println(err)
+		}
+		ctx.JSON(http.StatusOK, m)
+	})
+
+	g.Post("/jsonParam", func(ctx *msgo.Context) {
+		user := make([]User, 0)
+		err := ctx.BindJson(&user)
+		//ctx.DisallowUnknownFields = true
+		//ctx.IsValidate = true
+		if err == nil {
+			ctx.JSON(http.StatusOK, user)
+		} else {
+			log.Println(err)
+		}
+	})
 	engine.Run()
 }
