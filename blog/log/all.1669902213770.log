@@ -1,0 +1,12 @@
+{"id":1000,"log_time":"2022/12/01 - 21:43:57","loglevel":"DEBUG","msg":"我是debug日志","name":"zhuzhangyun"}
+{"log_time":"2022/12/01 - 21:43:57","loglevel":"INFO","msg":"我是info日志"}
+{"log_time":"2022/12/01 - 21:43:57","loglevel":"ERROR","msg":"我是error日志"}
+{"id":1000,"log_time":"2022/12/01 - 21:43:58","loglevel":"DEBUG","msg":"我是debug日志","name":"zhuzhangyun"}
+{"log_time":"2022/12/01 - 21:43:58","loglevel":"INFO","msg":"我是info日志"}
+{"log_time":"2022/12/01 - 21:43:58","loglevel":"ERROR","msg":"我是error日志"}
+{"id":1000,"log_time":"2022/12/01 - 21:43:58","loglevel":"DEBUG","msg":"我是debug日志","name":"zhuzhangyun"}
+{"log_time":"2022/12/01 - 21:43:58","loglevel":"INFO","msg":"我是info日志"}
+{"log_time":"2022/12/01 - 21:43:58","loglevel":"ERROR","msg":"我是error日志"}
+{"id":1000,"log_time":"2022/12/01 - 21:43:59","loglevel":"DEBUG","msg":"我是debug日志","name":"zhuzhangyun"}
+{"log_time":"2022/12/01 - 21:43:59","loglevel":"INFO","msg":"我是info日志"}
+{"log_time":"2022/12/01 - 21:43:59","loglevel":"ERROR","msg":"我是error日志"}

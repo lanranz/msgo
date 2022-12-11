@@ -7,6 +7,7 @@ import (
 	"log"
 	"mime/multipart"
 	"msgo/binding"
+	msLog "msgo/log"
 	"msgo/render"
 	"net/http"
 	"net/url"
@@ -31,6 +32,8 @@ type Context struct {
 	DisallowUnknownFields bool
 	//json传参缺少字段检验开关
 	IsValidate bool
+	StatusCode int
+	Logger     *msLog.Logger
 }
 
 // 获取url参数
@@ -272,10 +275,9 @@ func (c *Context) String(status int, format string, values ...any) error {
 }
 
 func (c *Context) Render(statusCode int, r render.Render) error {
+	c.W.WriteHeader(statusCode)
 	err := r.Render(c.W)
-	if statusCode != http.StatusOK {
-		c.W.WriteHeader(statusCode)
-	}
+	c.StatusCode = statusCode
 	return err
 }
 
@@ -301,4 +303,8 @@ func (c *Context) MustBindWith(obj any, b binding.Binding) error {
 
 func (c *Context) ShouldBindWith(obj any, b binding.Binding) error {
 	return b.Bind(c.R, obj)
+}
+
+func (c *Context) Fail(code int, msg string) {
+	c.String(code, msg)
 }

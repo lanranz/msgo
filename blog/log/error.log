@@ -1,0 +1,33 @@
+{"log_time":"2022/12/01 - 21:05:21","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:43:24","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:43:30","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:43:33","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:43:57","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:43:58","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:43:58","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:43:59","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:44:11","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:44:12","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:44:12","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:44:17","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 21:44:23","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 23:38:21","loglevel":"ERROR","msg":"我是error日志"}
+{"log_time":"2022/12/01 - 23:39:35","loglevel":"ERROR","msg":"invalid memory address or nil pointer dereference"}
+{"log_time":"2022/12/01 - 23:39:53","loglevel":"ERROR","msg":"invalid memory address or nil pointer dereference"}
+{"log_time":"2022/12/01 - 23:40:34","loglevel":"ERROR","msg":"invalid memory address or nil pointer dereference"}
+[33m [msgo] [0m [34m2022/12/01 - 23:41:38[0m | level= [31m ERROR [0m | msg=[31m "invalid memory address or nil pointer dereference" [0m  
+[33m [msgo] [0m [34m2022/12/01 - 23:42:09[0m | level= [31m ERROR [0m | msg=[31m "我是error日志" [0m  
+[33m [msgo] [0m [34m2022/12/01 - 23:46:39[0m | level= [31m ERROR [0m [31m 
+ Error Cause By: "我是error日志" [0m  
+[33m [msgo] [0m [34m2022/12/01 - 23:50:43[0m | level= [31m ERROR [0m [31m 
+ Error Cause By: "invalid memory address or nil pointer dereference" [0m  
+[33m [msgo] [0m [34m2022/12/01 - 23:50:50[0m | level= [31m ERROR [0m [31m 
+ Error Cause By: "invalid memory address or nil pointer dereference" [0m  
+[33m [msgo] [0m [34m2022/12/01 - 23:51:01[0m | level= [31m ERROR [0m [31m 
+ Error Cause By: "invalid memory address or nil pointer dereference" [0m  
+[33m [msgo] [0m [34m2022/12/01 - 23:53:21[0m | level= [31m ERROR [0m [31m 
+ Error Cause By: "invalid memory address or nil pointer dereference" [0m  
+[33m [msgo] [0m [34m2022/12/02 - 00:03:15[0m | level= [31m ERROR [0m [31m 
+ Error Cause By: "invalid memory address or nil pointer dereference" [0m  
+[33m [msgo] [0m [34m2022/12/02 - 00:03:48[0m | level= [31m ERROR [0m [31m 
+ Error Cause By: "invalid memory address or nil pointer dereference" [0m  

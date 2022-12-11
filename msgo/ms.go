@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	msLog "msgo/log"
 	"msgo/render"
 	"net/http"
 	"sync"
@@ -34,6 +35,7 @@ type routerGroup struct {
 
 type router struct {
 	routerGroups []*routerGroup
+	engine       *Engine
 }
 
 // 创建路由组，输入值路由组名，返回路由组的map
@@ -46,6 +48,7 @@ func (r *router) Group(name string) *routerGroup {
 		handlerMethodMap: make(map[string][]string),
 		treeNode:         &treeNode{name: "/", children: make([]*treeNode, 0)},
 	}
+	routerGroup.Use(r.engine.middles...)
 	//append(数组，需要添加的值)，将新建的路由组添加到router中的routerGroups数组中区
 	r.routerGroups = append(r.routerGroups, routerGroup)
 	return routerGroup
@@ -129,7 +132,9 @@ type Engine struct {
 	funcMap    template.FuncMap
 	HTMLRender render.HTMLRender
 	//sync.pool用于处理那些未来要用，但是暂时没有使用的值，这样可以不用重复分配内存，提高效率，这边用来解决context频繁每次调用都频繁创建的问题
-	pool sync.Pool
+	pool    sync.Pool
+	Logger  *msLog.Logger
+	middles []MiddlewareFunc
 }
 
 func (e *Engine) setFuncMap(funcMap template.FuncMap) {
@@ -158,6 +163,14 @@ func New() *Engine {
 	return engine
 }
 
+func Default() *Engine {
+	engine := New()
+	engine.router.engine = engine
+	engine.Logger = msLog.Default()
+	engine.Use(Logging)
+	return engine
+}
+
 // 初始化sync.Pool中的context的内容
 func (e *Engine) allcateContext() any {
 	return &Context{engine: e}
@@ -168,6 +181,7 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := e.pool.Get().(*Context)
 	ctx.W = w
 	ctx.R = r
+	ctx.Logger = e.Logger
 	e.httpRequestHandle(ctx, w, r)
 	e.pool.Put(ctx)
 }
@@ -222,4 +236,8 @@ func (e *Engine) Run() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func (e *Engine) Use(middles ...MiddlewareFunc) {
+	e.middles = middles
 }

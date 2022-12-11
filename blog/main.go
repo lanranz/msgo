@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"msgo"
+	msLog "msgo/log"
 	"net/http"
 )
 
@@ -27,8 +28,9 @@ func main() {
 	//http.HandleFunc("/hello", func(writer http.ResponseWriter, request *http.Request) {
 	//	fmt.Fprintln(writer, "hello mszlu.com")
 	//})
-	engine := msgo.New()
+	engine := msgo.Default()
 	g := engine.Group("user")
+	//g.Use(msgo.Logging, msgo.Recovery)
 	g.Use(func(next msgo.HandleFunc) msgo.HandleFunc {
 		return func(ctx *msgo.Context) {
 			fmt.Println("pre handler")
@@ -171,6 +173,25 @@ func main() {
 		} else {
 			log.Println(err)
 		}
+	})
+
+	logger := engine.Logger
+	logger.Level = msLog.LevelDebug
+	//logger.Formatter = &msLog.JsonFormatter{TimeDisplay: true}
+	//logger.Outs = append(logger.Outs, msLog.FileWrite("./log/log.log"))
+	logger.SetLogPath("./log")
+	var use *User
+	g.Post("/xmlParam", func(ctx *msgo.Context) {
+		use.Age = 10
+		user := &User{}
+		_ = ctx.BindXml(user)
+		ctx.Logger.WithFields(msLog.Fields{
+			"name": "zhuzhangyun",
+			"id":   1000,
+		}).Debug("我是debug日志")
+		ctx.Logger.Info("我是info日志")
+		ctx.Logger.Error("我是error日志")
+		ctx.JSON(http.StatusOK, user)
 	})
 	engine.Run()
 }
